@@ -1,0 +1,26 @@
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+
+def test_root_endpoint():
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert response.json()["service"] == "NEXUS Ops"
+    assert response.json()["status"] == "running"
+
+
+def test_health_endpoint():
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+    assert "timestamp" in response.json()
+
+
+def test_api_documentation():
+    response = client.get("/docs")
+
+    assert response.status_code == 200

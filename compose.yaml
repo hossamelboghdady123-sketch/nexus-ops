@@ -1,0 +1,9 @@
+services:
+  nexus-ops:
+    build:
+      context: .
+    image: nexus-ops:0.1.0
+    container_name: nexus-ops-compose
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
