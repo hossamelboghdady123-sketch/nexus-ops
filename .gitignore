@@ -7,3 +7,12 @@ __pycache__/
 !.env.example
 .coverage
 htmlcov/
+
+# Terraform local files
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
