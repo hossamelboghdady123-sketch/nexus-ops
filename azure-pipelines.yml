@@ -41,6 +41,22 @@ steps:
 
   - script: |
       set -euo pipefail
+      mkdir -p "$(Pipeline.Workspace)/trivy-cache"
+
+      docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v "$(Pipeline.Workspace)/trivy-cache:/root/.cache/" \
+        aquasec/trivy:0.76.1 image \
+        --scanners vuln \
+        --severity HIGH,CRITICAL \
+        --ignore-unfixed \
+        --exit-code 0 \
+        --format table \
+        "$(imageName):$(imageTag)"
+    displayName: Scan Docker image with Trivy
+
+  - script: |
+      set -euo pipefail
       container_name=nexus-ops-ci
 
       cleanup() {
