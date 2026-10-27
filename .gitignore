@@ -16,3 +16,11 @@ crash.log
 crash.*.log
 *.tfvars
 *.tfvars.json
+
+# Local backups and Terraform artifacts
+*.bak
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform/
+terraform.tfvars

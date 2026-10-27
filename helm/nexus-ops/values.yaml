@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: hossam789/nexus-ops
-  tag: "latest"
+  tag: "0.2.0"
   pullPolicy: Always
 
 service:
