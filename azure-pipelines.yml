@@ -40,19 +40,34 @@ steps:
     displayName: Build Docker image
 
   - script: |
-      set -euo pipefail
-      mkdir -p "$(Pipeline.Workspace)/trivy-cache"
+      set -Eeuo pipefail
+      IMAGE="$(imageName):$(imageTag)"
+      CACHE_DIR="$(Pipeline.Workspace)/trivy-cache"
+      mkdir -p "$CACHE_DIR"
 
+      echo "=== Report HIGH and CRITICAL vulnerabilities ==="
       docker run --rm \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        -v "$(Pipeline.Workspace)/trivy-cache:/root/.cache/" \
+        -v "$CACHE_DIR:/root/.cache/" \
         aquasec/trivy:0.76.1 image \
         --scanners vuln \
         --severity HIGH,CRITICAL \
         --ignore-unfixed \
         --exit-code 0 \
         --format table \
-        "$(imageName):$(imageTag)"
+        "$IMAGE"
+
+      echo "=== Security gate: block fixable CRITICAL vulnerabilities ==="
+      docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v "$CACHE_DIR:/root/.cache/" \
+        aquasec/trivy:0.76.1 image \
+        --scanners vuln \
+        --severity CRITICAL \
+        --ignore-unfixed \
+        --exit-code 1 \
+        --format table \
+        "$IMAGE"
     displayName: Scan Docker image with Trivy
 
   - script: |
