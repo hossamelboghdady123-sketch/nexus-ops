@@ -1,0 +1,15 @@
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: AWSCLI@1
+    displayName: Get Azure OIDC details
+    continueOnError: true
+    inputs:
+      awsCredentials: 'aws-oidc-nexus-ops'
+      regionName: 'eu-north-1'
+      awsCommand: 'sts'
+      awsSubCommand: 'get-caller-identity'
