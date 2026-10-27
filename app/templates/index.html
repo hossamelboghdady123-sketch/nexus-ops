@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="NEXUS Ops — Cloud reliability and DevSecOps platform.">
+  <title>NEXUS Ops | Cloud Reliability Platform</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #11182a;
+      --panel-2: #151e33;
+      --line: #263149;
+      --text: #edf2ff;
+      --muted: #94a3bd;
+      --accent: #8b9cff;
+      --cyan: #6ce5e5;
+      --green: #62e6a8;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 80% 5%, #202e59 0, transparent 35%),
+        radial-gradient(ellipse at 5% 30%, #142544 0, transparent 32%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+                   BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    .wrap { width: min(1160px, calc(100% - 40px)); margin: auto; }
+
+    header {
+      border-bottom: 1px solid rgba(148,163,189,.14);
+      background: rgba(11,16,32,.72);
+      backdrop-filter: blur(18px);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .nav {
+      min-height: 76px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px;
+    }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.3px; }
+    .brand-mark {
+      width: 40px; height: 40px; border-radius: 13px;
+      display:grid; place-items:center;
+      background: linear-gradient(135deg, #97a6ff, #5c6ee8);
+      color:#0b1020; box-shadow: 0 8px 28px #6477ff30;
+    }
+    .brand small { display:block; color:var(--muted); font-size:10px; letter-spacing:2px; font-weight:700; }
+    .nav-links { display:flex; align-items:center; gap:27px; color:var(--muted); font-size:13px; }
+    .nav-links a:hover { color:var(--text); }
+    .nav-cta {
+      border:1px solid #6477ff66; border-radius:10px; padding:10px 15px;
+      color:#dbe1ff; background:#6477ff12; font-size:13px; font-weight:700;
+    }
+
+    .hero { padding: 82px 0 54px; }
+    .hero-grid { display:grid; grid-template-columns: 1.12fr .88fr; gap:55px; align-items:center; }
+    .eyebrow {
+      display:inline-flex; align-items:center; gap:9px; border:1px solid #394568;
+      border-radius:999px; padding:7px 12px; background:#18213a88;
+      color:#c4cdff; font-size:11px; letter-spacing:1.6px; font-weight:800;
+    }
+    .pulse { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 12px #62e6a8a0; }
+    h1 { font-size: clamp(42px, 5vw, 67px); line-height:1.06; letter-spacing:-2.8px; margin:24px 0 20px; }
+    .gradient { background:linear-gradient(100deg,#f4f6ff 10%,#9daaff 55%,#6ce5e5); color:transparent; background-clip:text; }
+    .hero-copy { max-width:565px; color:#a7b4cd; font-size:16px; line-height:1.9; }
+    .actions { display:flex; gap:13px; flex-wrap:wrap; margin-top:30px; }
+    .btn {
+      display:inline-flex; justify-content:center; align-items:center; gap:9px;
+      padding:13px 18px; border-radius:11px; font-size:13px; font-weight:800;
+      transition:transform .2s, border-color .2s;
+    }
+    .btn:hover { transform:translateY(-2px); }
+    .primary { color:#0b1020; background:linear-gradient(110deg,#b2bdff,#72e2e6); }
+    .secondary { border:1px solid #34415d; background:#141d30; color:#e2e8ff; }
+
+    .visual {
+      border:1px solid #2b3955; background:linear-gradient(145deg,#18233bdf,#101729f5);
+      border-radius:23px; padding:25px; position:relative; overflow:hidden;
+      box-shadow:0 25px 100px #0005;
+    }
+    .visual:before {
+      content:""; position:absolute; width:230px; height:230px; border-radius:50%;
+      background:#7385ff14; filter:blur(2px); right:-100px; top:-100px;
+    }
+    .visual-head { display:flex; justify-content:space-between; align-items:center; gap:10px; position:relative; }
+    .visual-head strong { font-size:14px; }
+    .live { color:var(--green); font-size:11px; background:#62e6a812; border:1px solid #62e6a833; padding:5px 9px; border-radius:999px; }
+    .flow { display:grid; gap:13px; margin-top:25px; position:relative; }
+    .flow-node {
+      display:flex; align-items:center; gap:13px; padding:14px; border-radius:14px;
+      border:1px solid #2b3851; background:#111a2c;
+    }
+    .node-icon { width:39px; height:39px; display:grid; place-items:center; flex-shrink:0;
+      border-radius:11px; background:#6477ff1b; color:#aab5ff; font-size:19px; }
+    .flow-node strong { display:block; font-size:13px; }
+    .flow-node small { display:block; color:var(--muted); font-size:11px; margin-top:2px; }
+    .node-tag { margin-left:auto; font-size:10px; color:#a7b4cd; }
+    .connector { height:13px; border-left:1px dashed #6375a0; margin:-13px 0 -13px 33px; }
+    .visual-foot { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; margin-top:22px; padding-top:17px; border-top:1px solid #29344a; }
+
+    .section-label { color:#9caaff; font-size:11px; letter-spacing:2px; font-weight:800; }
+    .section-title { font-size:27px; letter-spacing:-.8px; margin:7px 0 8px; }
+    .section-copy { color:var(--muted); font-size:13px; margin:0; }
+    .status-section { padding:20px 0 65px; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-top:25px; }
+    .stat {
+      padding:21px; border:1px solid var(--line); border-radius:17px;
+      background:linear-gradient(150deg,#151e31dc,#101729d9);
+      min-height:145px;
+    }
+    .stat-top { display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; }
+    .stat-icon { color:#aab5ff; font-size:18px; }
+    .stat-value { font-size:22px; font-weight:800; letter-spacing:-.5px; margin:15px 0 2px; }
+    .stat-note { color:var(--muted); font-size:11px; }
+    .status-pill { display:inline-flex; align-items:center; gap:7px; color:var(--green); font-size:11px; font-weight:800; }
+    .status-pill .pulse { width:6px; height:6px; }
+
+    .capabilities { padding:31px 0 78px; }
+    .cap-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:15px; margin-top:24px; }
+    .cap {
+      padding:24px; border:1px solid var(--line); border-radius:17px;
+      background:#11192bba; transition:border-color .2s, transform .2s;
+    }
+    .cap:hover { border-color:#6477ff88; transform:translateY(-3px); }
+    .cap-icon { width:43px; height:43px; display:grid; place-items:center; border:1px solid #3b4770; border-radius:13px; background:#6477ff14; font-size:19px; }
+    .cap h3 { font-size:15px; margin:17px 0 7px; }
+    .cap p { color:var(--muted); font-size:12px; line-height:1.8; margin:0; }
+    .techs { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+    .tech { border:1px solid #2b3953; background:#151e30; color:#bbc7dd; border-radius:7px; padding:5px 8px; font-size:10px; }
+
+    .end-cta {
+      display:flex; justify-content:space-between; align-items:center; gap:20px;
+      border:1px solid #344263; border-radius:20px; padding:26px;
+      background:linear-gradient(105deg,#202c4a99,#141c30dd);
+      margin-bottom:60px;
+    }
+    .end-cta h2 { margin:0 0 6px; font-size:19px; }
+    .end-cta p { margin:0; color:var(--muted); font-size:12px; }
+    footer { border-top:1px solid #202b40; padding:24px 0 32px; color:var(--muted); font-size:11px; }
+    .footer-inner { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    .footer-links { display:flex; gap:18px; }
+    .footer-links a:hover { color:var(--text); }
+
+    @media (max-width:850px) {
+      .hero-grid { grid-template-columns:1fr; gap:35px; }
+      .hero { padding-top:55px; }
+      .stats { grid-template-columns:repeat(2,1fr); }
+      .cap-grid { grid-template-columns:repeat(2,1fr); }
+      .nav-links { gap:14px; }
+    }
+    @media (max-width:560px) {
+      .wrap { width:min(100% - 28px,1160px); }
+      .nav { min-height:66px; }
+      .nav-links a:not(.nav-cta) { display:none; }
+      h1 { letter-spacing:-1.8px; }
+      .stats,.cap-grid { grid-template-columns:1fr; }
+      .end-cta { align-items:flex-start; flex-direction:column; }
+      .visual { padding:18px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/">
+      <span class="brand-mark">N</span>
+      <span>NEXUS OPS<small>CLOUD RELIABILITY PLATFORM</small></span>
+    </a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="#platform">Platform</a>
+      <a href="#observability">Observability</a>
+      <a href="/health" target="_blank" rel="noreferrer">Health API</a>
+      <a class="nav-cta" href="/docs">Explore API ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow"><span class="pulse"></span> CLOUD-NATIVE · DEVSECOPS · AUTOMATION</div>
+        <h1>Ship with confidence.<br><span class="gradient">Operate with clarity.</span></h1>
+        <p class="hero-copy">
+          A cloud reliability platform built to bring application delivery,
+          operational visibility, and security checks into one streamlined workflow.
+          From commit to container, every release has a clear path to production.
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="/docs">Explore API <span>↗</span></a>
+          <a class="btn secondary" href="#observability">View platform ↓</a>
+        </div>
+      </div>
+
+      <div class="visual" aria-label="NEXUS Ops delivery architecture">
+        <div class="visual-head">
+          <strong>Release workflow</strong>
+          <span class="live"><span class="pulse" style="display:inline-block;margin-right:6px"></span>LIVE SERVICE</span>
+        </div>
+        <div class="flow">
+          <div class="flow-node">
+            <div class="node-icon">⌘</div>
+            <div><strong>Source control</strong><small>Versioned application code</small></div>
+            <span class="node-tag">GIT</span>
+          </div>
+          <div class="connector"></div>
+          <div class="flow-node">
+            <div class="node-icon">⇄</div>
+            <div><strong>CI/CD pipeline</strong><small>Tests · Image build · Security scan</small></div>
+            <span class="node-tag">BUILD</span>
+          </div>
+          <div class="connector"></div>
+          <div class="flow-node">
+            <div class="node-icon">☁</div>
+            <div><strong>AWS deployment</strong><small>EC2 · Docker · Systems Manager</small></div>
+            <span class="node-tag">DEPLOY</span>
+          </div>
+          <div class="connector"></div>
+          <div class="flow-node">
+            <div class="node-icon">⌁</div>
+            <div><strong>Observability</strong><small>Prometheus metrics · Grafana alerts</small></div>
+            <span class="node-tag">MONITOR</span>
+          </div>
+        </div>
+        <div class="visual-foot"><span>Automated delivery</span><span>Security-aware workflow</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="status-section" id="observability">
+    <div class="wrap">
+      <div class="section-label">SERVICE OVERVIEW</div>
+      <h2 class="section-title">Your platform at a glance</h2>
+      <p class="section-copy">Live health is read from the running application. Infrastructure and tools are shown as the platform stack.</p>
+
+      <div class="stats">
+        <article class="stat">
+          <div class="stat-top"><span>Application status</span><span class="stat-icon">◉</span></div>
+          <div class="stat-value" id="service-status">Checking…</div>
+          <div class="stat-note" id="service-detail">Connecting to health endpoint</div>
+        </article>
+        <article class="stat">
+          <div class="stat-top"><span>Runtime</span><span class="stat-icon">⌘</span></div>
+          <div class="stat-value">FastAPI</div>
+          <div class="stat-note" id="service-version">Python API service</div>
+        </article>
+        <article class="stat">
+          <div class="stat-top"><span>Deployment platform</span><span class="stat-icon">☁</span></div>
+          <div class="stat-value">AWS EC2</div>
+          <div class="stat-note">Docker container · SSM delivery</div>
+        </article>
+        <article class="stat">
+          <div class="stat-top"><span>Observability</span><span class="stat-icon">⌁</span></div>
+          <div class="stat-value">Metrics</div>
+          <div class="stat-note">Prometheus · Grafana</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="capabilities" id="platform">
+    <div class="wrap">
+      <div class="section-label">BUILT FOR DELIVERY</div>
+      <h2 class="section-title">One platform. Four capabilities.</h2>
+      <p class="section-copy">A practical engineering project covering the application lifecycle from source to operations.</p>
+
+      <div class="cap-grid">
+        <article class="cap">
+          <div class="cap-icon">⇄</div>
+          <h3>Automated delivery</h3>
+          <p>Build and test each change, package the service in Docker, then deploy through a controlled pipeline.</p>
+          <div class="techs"><span class="tech">Azure DevOps</span><span class="tech">Docker</span><span class="tech">AWS SSM</span></div>
+        </article>
+        <article class="cap">
+          <div class="cap-icon">⬡</div>
+          <h3>Security by design</h3>
+          <p>Scan container dependencies for vulnerabilities and gate releases against the configured security policy.</p>
+          <div class="techs"><span class="tech">Trivy</span><span class="tech">OIDC</span><span class="tech">IAM</span></div>
+        </article>
+        <article class="cap">
+          <div class="cap-icon">⌁</div>
+          <h3>Operational visibility</h3>
+          <p>Expose application metrics and health signals to support service monitoring and alerting.</p>
+          <div class="techs"><span class="tech">Prometheus</span><span class="tech">Grafana</span></div>
+        </article>
+        <article class="cap">
+          <div class="cap-icon">⌘</div>
+          <h3>Infrastructure as code</h3>
+          <p>Define core AWS networking and compute resources as reproducible Terraform configuration.</p>
+          <div class="techs"><span class="tech">Terraform</span><span class="tech">AWS VPC</span><span class="tech">EC2</span></div>
+        </article>
+        <article class="cap">
+          <div class="cap-icon">✓</div>
+          <h3>Release validation</h3>
+          <p>Validate service health and metrics after deployment and test rollback images in isolation.</p>
+          <div class="techs"><span class="tech">Pytest</span><span class="tech">Health checks</span></div>
+        </article>
+        <article class="cap">
+          <div class="cap-icon">↗</div>
+          <h3>Developer interface</h3>
+          <p>Use the API documentation and health endpoints to inspect and validate service behavior.</p>
+          <div class="techs"><span class="tech">FastAPI</span><span class="tech">REST API</span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="end-cta">
+      <div>
+        <h2>Explore the service</h2>
+        <p>Inspect API endpoints, health status, and raw Prometheus metrics.</p>
+      </div>
+      <div class="actions" style="margin:0">
+        <a class="btn secondary" href="/health" target="_blank" rel="noreferrer">Health JSON ↗</a>
+        <a class="btn primary" href="/metrics" target="_blank" rel="noreferrer">View metrics ↗</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 NEXUS Ops · Cloud Reliability & DevSecOps</span>
+    <div class="footer-links">
+      <a href="/docs">API Docs</a>
+      <a href="/openapi.json">OpenAPI</a>
+      <a href="/health">Health</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  async function updateStatus() {
+    const label = document.getElementById("service-status");
+    const detail = document.getElementById("service-detail");
+    const version = document.getElementById("service-version");
+
+    try {
+      const response = await fetch("/health", { cache: "no-store" });
+      if (!response.ok) throw new Error("Health check returned " + response.status);
+      const health = await response.json();
+
+      label.textContent = health.status === "healthy" ? "Operational" : "Degraded";
+      label.style.color = health.status === "healthy" ? "var(--green)" : "#ffbd76";
+      detail.textContent = "Health endpoint responding";
+    } catch (error) {
+      label.textContent = "Unavailable";
+      label.style.color = "#ff8494";
+      detail.textContent = "Health check could not be reached";
+    }
+
+    try {
+      const response = await fetch("/api", { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        version.textContent = "Service version " + data.version;
+      }
+    } catch (_) {
+      version.textContent = "Version information unavailable";
+    }
+  }
+
+  updateStatus();
+  setInterval(updateStatus, 30000);
+</script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(
@@ -9,13 +11,22 @@ app = FastAPI(
     version="0.1.0",
 )
 
+INDEX_FILE = Path(__file__).parent / "templates" / "index.html"
 
-@app.get("/")
+
+@app.get("/", response_class=HTMLResponse)
 def root():
+    return HTMLResponse(
+        content=INDEX_FILE.read_text(encoding="utf-8")
+    )
+
+
+@app.get("/api")
+def api_info():
     return {
         "service": "NEXUS Ops",
         "status": "running",
-        "version": "0.1.0",
+        "version": app.version,
     }
 
 
