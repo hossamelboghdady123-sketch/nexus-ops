@@ -1,13 +1,15 @@
 trigger: none
 pr: none
 
+variables:
+  system.debug: true
+
 pool:
   vmImage: ubuntu-latest
 
 steps:
   - task: AWSCLI@1
-    displayName: Get Azure OIDC details
-    continueOnError: true
+    displayName: Test AWS OIDC federation
     inputs:
       awsCredentials: 'aws-oidc-nexus-ops'
       regionName: 'eu-north-1'
