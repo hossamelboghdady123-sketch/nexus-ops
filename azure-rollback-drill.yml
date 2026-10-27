@@ -1,0 +1,143 @@
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-24.04
+
+steps:
+  - task: AWSShellScript@1
+    displayName: Verify rollback through SSM
+    inputs:
+      awsCredentials: 'aws-oidc-nexus-ops'
+      regionName: 'eu-north-1'
+      scriptType: inline
+      inlineScript: |
+        set -euo pipefail
+
+        INSTANCE_ID="i-037bc544a0493c088"
+
+        REMOTE_SCRIPT=$(cat <<'REMOTE'
+        set -eu
+
+        CURRENT_IMAGE=$(sudo docker inspect --format '{{.Config.Image}}' nexus-ops)
+        OLD_IMAGE="nexus-ops:rollback-test"
+        TEST_NAME="nexus-ops-rollback-drill"
+        TEST_PORT="18002"
+
+        cleanup() {
+          sudo docker rm -f "$TEST_NAME" >/dev/null 2>&1 || true
+        }
+        trap cleanup EXIT
+
+        echo "Checking production before test..."
+        curl -fsS http://127.0.0.1:8001/health
+        echo
+
+        CURRENT_ID=$(sudo docker image inspect "$CURRENT_IMAGE" --format '{{.Id}}')
+        OLD_ID=$(sudo docker image inspect "$OLD_IMAGE" --format '{{.Id}}')
+
+        if [ "$CURRENT_ID" = "$OLD_ID" ]; then
+          echo "ERROR: Current and rollback images are identical."
+          exit 1
+        fi
+
+        echo "Production image: $CURRENT_IMAGE"
+        echo "Rollback image: $OLD_IMAGE"
+
+        echo "Simulating a failed release in isolation..."
+        cleanup
+
+        sudo docker run -d \
+          --name "$TEST_NAME" \
+          --restart no \
+          -p "127.0.0.1:${TEST_PORT}:8000" \
+          --entrypoint /bin/sh \
+          "$CURRENT_IMAGE" -c 'sleep 120' >/dev/null
+
+        sleep 2
+
+        if curl -fsS --max-time 2 \
+          "http://127.0.0.1:${TEST_PORT}/health" >/dev/null 2>&1; then
+          echo "ERROR: The intentional failure was not detected."
+          exit 1
+        fi
+
+        echo "Expected failure detected."
+
+        echo "Restoring the previous image in the test container..."
+        cleanup
+
+        sudo docker run -d \
+          --name "$TEST_NAME" \
+          --restart no \
+          -p "127.0.0.1:${TEST_PORT}:8000" \
+          "$OLD_IMAGE" >/dev/null
+
+        HEALTHY=0
+        for i in $(seq 1 30); do
+          if curl -fsS "http://127.0.0.1:${TEST_PORT}/health"; then
+            HEALTHY=1
+            echo
+            break
+          fi
+          sleep 2
+        done
+
+        if [ "$HEALTHY" -ne 1 ]; then
+          sudo docker logs "$TEST_NAME" || true
+          echo "ERROR: Rollback image failed health check."
+          exit 1
+        fi
+
+        curl -fsS "http://127.0.0.1:${TEST_PORT}/metrics" \
+          | grep -m 1 http_requests_total
+
+        echo "Checking production remains healthy..."
+        curl -fsS http://127.0.0.1:8001/health
+        echo
+
+        echo "ROLLBACK_DRILL_PASSED"
+        REMOTE
+        )
+
+        PARAMETERS=$(printf '%s' "$REMOTE_SCRIPT" | python3 -c \
+          'import json,sys; print(json.dumps({"commands":[sys.stdin.read()]}))')
+
+        COMMAND_ID=$(aws ssm send-command \
+          --region eu-north-1 \
+          --document-name AWS-RunShellScript \
+          --instance-ids "$INSTANCE_ID" \
+          --comment "NEXUS Ops isolated rollback drill" \
+          --parameters "$PARAMETERS" \
+          --query 'Command.CommandId' \
+          --output text)
+
+        echo "SSM Command ID: $COMMAND_ID"
+
+        STATUS="Pending"
+        for i in $(seq 1 60); do
+          STATUS=$(aws ssm get-command-invocation \
+            --region eu-north-1 \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query Status --output text 2>/dev/null || true)
+
+          case "$STATUS" in
+            Success|Failed|Cancelled|TimedOut|Cancelling|Undeliverable|Terminated)
+              break
+              ;;
+          esac
+          sleep 5
+        done
+
+        aws ssm get-command-invocation \
+          --region eu-north-1 \
+          --command-id "$COMMAND_ID" \
+          --instance-id "$INSTANCE_ID" \
+          --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+          --output json
+
+        if [ "$STATUS" != "Success" ]; then
+          echo "Rollback drill failed or timed out."
+          exit 1
+        fi
