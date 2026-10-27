@@ -30,7 +30,10 @@ steps:
       python -m pip install -r requirements.txt pytest
     displayName: Install Python dependencies
 
-  - script: pytest -q
+  - script: |
+      echo "Sources: $(Build.SourcesDirectory)"
+      export PYTHONPATH="$(Build.SourcesDirectory):${PYTHONPATH:-}"
+      python -m pytest -q
     displayName: Run unit tests
 
   - script: docker build -t $(imageName):$(imageTag) .
