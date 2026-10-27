@@ -70,3 +70,163 @@ steps:
 
       echo "Health and metrics smoke tests passed."
     displayName: Test Docker container health and metrics
+
+  - task: AWSShellScript@1
+    displayName: Deploy NEXUS Ops to EC2 via SSM
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    inputs:
+      awsCredentials: 'aws-oidc-nexus-ops'
+      regionName: 'eu-north-1'
+      scriptType: 'inline'
+      inlineScript: |
+        set -Eeuo pipefail
+
+        INSTANCE_ID="i-037bc544a0493c088"
+        SOURCE_COMMIT="$(Build.SourceVersion)"
+        BUILD_ID="$(Build.BuildId)"
+
+        echo "Checking AWS identity..."
+        aws sts get-caller-identity
+
+        REMOTE_SCRIPT_TEMPLATE=$(cat <<'REMOTE'
+        set -eu
+
+        APP_DIR="/home/ec2-user/nexus-ops"
+        SOURCE_COMMIT="__SOURCE_COMMIT__"
+        BUILD_ID="__BUILD_ID__"
+        NEW_IMAGE="nexus-ops:${BUILD_ID}"
+        OLD_IMAGE=$(sudo docker inspect --format '{{.Config.Image}}' nexus-ops 2>/dev/null || true)
+
+        if [ -z "$OLD_IMAGE" ]; then
+          echo "ERROR: Existing nexus-ops container not found."
+          exit 1
+        fi
+
+        echo "Fetching the exact commit to deploy: $SOURCE_COMMIT"
+        sudo -u ec2-user -H git -C "$APP_DIR" fetch --no-tags origin main
+        sudo -u ec2-user -H git -C "$APP_DIR" reset --hard "$SOURCE_COMMIT"
+
+        echo "Building image: $NEW_IMAGE"
+        sudo docker build -t "$NEW_IMAGE" "$APP_DIR"
+
+        echo "Testing candidate container before replacing production..."
+        sudo docker rm -f nexus-ops-candidate >/dev/null 2>&1 || true
+        sudo docker run -d --name nexus-ops-candidate \
+          -p 127.0.0.1:8002:8000 "$NEW_IMAGE" >/dev/null
+
+        HEALTHY=0
+        ATTEMPT=1
+        while [ "$ATTEMPT" -le 30 ]; do
+          if curl -fsS http://127.0.0.1:8002/health >/dev/null 2>&1; then
+            if curl -fsS http://127.0.0.1:8002/metrics | grep 'http_requests_total' >/dev/null; then
+              HEALTHY=1
+              break
+            fi
+          fi
+          sleep 2
+          ATTEMPT=$((ATTEMPT + 1))
+        done
+
+        if [ "$HEALTHY" -ne 1 ]; then
+          sudo docker logs nexus-ops-candidate || true
+          sudo docker rm -f nexus-ops-candidate >/dev/null 2>&1 || true
+          echo "Candidate validation failed; production was not replaced."
+          exit 1
+        fi
+
+        sudo docker rm -f nexus-ops-candidate >/dev/null
+
+        rollback() {
+          echo "Deployment failed. Restoring previous image: $OLD_IMAGE"
+          sudo docker rm -f nexus-ops >/dev/null 2>&1 || true
+          sudo docker run -d --name nexus-ops --restart unless-stopped \
+            --network nexus-monitoring \
+            -p 127.0.0.1:8001:8000 "$OLD_IMAGE"
+        }
+
+        echo "Replacing the production container..."
+        sudo docker stop nexus-ops >/dev/null
+        sudo docker rm nexus-ops >/dev/null
+
+        if ! sudo docker run -d --name nexus-ops --restart unless-stopped \
+          --network nexus-monitoring \
+          -p 127.0.0.1:8001:8000 "$NEW_IMAGE"; then
+          rollback
+          exit 1
+        fi
+
+        HEALTHY=0
+        ATTEMPT=1
+        while [ "$ATTEMPT" -le 30 ]; do
+          if curl -fsS http://127.0.0.1:8001/health >/dev/null 2>&1; then
+            if curl -fsS http://127.0.0.1:8001/metrics | grep 'http_requests_total' >/dev/null; then
+              HEALTHY=1
+              break
+            fi
+          fi
+          sleep 2
+          ATTEMPT=$((ATTEMPT + 1))
+        done
+
+        if [ "$HEALTHY" -ne 1 ]; then
+          sudo docker logs nexus-ops || true
+          rollback
+          exit 1
+        fi
+
+        echo "DEPLOY_SUCCESS commit=$SOURCE_COMMIT image=$NEW_IMAGE"
+        sudo docker ps --filter name=nexus-ops
+        REMOTE
+        )
+
+        REMOTE_SCRIPT=$(printf '%s\n' "$REMOTE_SCRIPT_TEMPLATE" | sed \
+          -e "s/__SOURCE_COMMIT__/${SOURCE_COMMIT}/g" \
+          -e "s/__BUILD_ID__/${BUILD_ID}/g")
+
+        PARAMETERS_JSON=$(printf '%s' "$REMOTE_SCRIPT" | python3 -c \
+          'import json,sys; print(json.dumps({"commands":[sys.stdin.read()]}))')
+
+        COMMAND_ID=$(aws ssm send-command \
+          --region eu-north-1 \
+          --document-name AWS-RunShellScript \
+          --instance-ids "$INSTANCE_ID" \
+          --comment "NEXUS Ops deployment build ${BUILD_ID}" \
+          --parameters "$PARAMETERS_JSON" \
+          --query 'Command.CommandId' \
+          --output text)
+
+        echo "SSM Command ID: $COMMAND_ID"
+
+        STATUS="Pending"
+        for attempt in $(seq 1 60); do
+          STATUS=$(aws ssm get-command-invocation \
+            --region eu-north-1 \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query Status --output text 2>/dev/null || true)
+
+          case "$STATUS" in
+            Success) break ;;
+            Failed|Cancelled|TimedOut|Cancelling|Undeliverable|Terminated)
+              aws ssm get-command-invocation \
+                --region eu-north-1 \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --output json || true
+              exit 1
+              ;;
+          esac
+          sleep 5
+        done
+
+        aws ssm get-command-invocation \
+          --region eu-north-1 \
+          --command-id "$COMMAND_ID" \
+          --instance-id "$INSTANCE_ID" \
+          --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+          --output json
+
+        if [ "$STATUS" != "Success" ]; then
+          echo "Timed out waiting for deployment result."
+          exit 1
+        fi
