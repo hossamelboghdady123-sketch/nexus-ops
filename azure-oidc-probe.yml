@@ -5,7 +5,7 @@ variables:
   system.debug: true
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: ubuntu-24.04
 
 steps:
   - task: AWSCLI@1
